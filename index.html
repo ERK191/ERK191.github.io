@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CryptoChat | Discord Edition</title>
-    <!-- 📦 Crucial: Read the official engine file locally from your own repository files -->
+    <title>CryptoChat | Direct Access Edition</title>
+    <!-- 📦 Reads the engine file locally from your repository -->
     <script src="supabase.js"></script>
     <style>
         :root {
@@ -23,21 +23,7 @@
             overflow: hidden;
         }
 
-        /* 🌀 SPLASH LOADING SCREEN */
-        #loading-screen {
-            position: fixed; top:0; left:0; width:100vw; height:100vh;
-            background: #1e1f22; display: flex; flex-direction: column;
-            justify-content: center; align-items: center; z-index: 9999;
-            transition: opacity 0.3s ease;
-        }
-        .spinner {
-            width: 44px; height: 44px;
-            border: 4px solid var(--bg-sidebar); border-top: 4px solid var(--blurple);
-            border-radius: 50%; animation: spin 1s linear infinite;
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-        /* 🔐 DISCORD STYLE LOGIN */
+        /* 🔐 INSTANT DISCORD STYLE LOGIN */
         .login-wrap { display: flex; justify-content: center; align-items: center; height: 100vh; }
         .login-box { background: var(--bg-sidebar); padding: 35px; border-radius: 8px; width: 380px; box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
         .login-box h2 { margin: 0 0 6px 0; text-align: center; color: white;}
@@ -49,7 +35,7 @@
         button { width: 100%; padding: 12px; background: var(--blurple); color: #fff; font-weight: bold; border: none; border-radius: 4px; cursor: pointer; }
         button:hover { background: #4752c4; }
 
-        /* 🕹️ DISCORD INTERFACE LAYOUT */
+        /* 🕹️ WORKSPACE LAYOUT */
         .app-container { display: flex; width: 100vw; height: 100vh; }
         .server-bar { width: 72px; background: var(--bg-leftmost); display: flex; flex-direction: column; align-items: center; padding-top: 12px; gap: 10px; }
         .server-btn { width: 48px; height: 48px; background: var(--bg-sidebar); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; transition: all 0.2s; }
@@ -61,7 +47,7 @@
         .list-item:hover, .list-item.active { background: rgba(255,255,255,0.06); color: #fff; }
         .user-panel { height: 52px; background: #232428; display: flex; align-items: center; justify-content: space-between; padding: 0 10px; }
         
-        /* 💬 CHAT WINDOW */
+        /* 💬 CHAT FRAME */
         .main-chat { flex-grow: 1; background: var(--bg-chat); display: flex; flex-direction: column; }
         .chat-header { height: 48px; border-bottom: 1px solid rgba(0,0,0,0.2); display: flex; align-items: center; padding: 0 20px; font-weight: bold; color: white; justify-content: space-between; }
         .messages-pane { flex-grow: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
@@ -83,14 +69,8 @@
 </head>
 <body>
 
-    <!-- 🌀 LOADING SPLASH -->
-    <div id="loading-screen">
-        <div class="spinner"></div>
-        <div style="color:var(--text-muted); font-size:12px; margin-top:15px; font-weight:bold; letter-spacing:1px;">CONNECTING TO CRYPTOCHAT</div>
-    </div>
-
-    <!-- 🔐 ACCOUNT LOGINS -->
-    <div id="auth-section" class="login-wrap hidden">
+    <!-- 🔐 SCREEN 1: DISCORD LOGIN SHOWS INSTANTLY -->
+    <div id="auth-section" class="login-wrap">
         <div class="login-box">
             <h2>Welcome to CryptoChat</h2>
             <p>Enter details to open your secure workspace</p>
@@ -113,9 +93,8 @@
         </div>
     </div>
 
-    <!-- 🕹️ DISCORD WORKSPACE FRAMES -->
+    <!-- 🕹️ SCREEN 2: MAIN WORKSPACE INTERFACE -->
     <div id="chat-section" class="app-container hidden">
-        <!-- Tab Sidebar -->
         <div class="server-bar">
             <div class="server-btn active" id="btn-dm-view" onclick="switchMainTab('dms')">DMs</div>
             <div style="width:32px; height:2px; background:#3f4147; margin:4px 0;"></div>
@@ -123,7 +102,6 @@
             <div class="server-btn" style="background:#23a55a; color:white;" onclick="createNewServer()">+</div>
         </div>
 
-        <!-- Secondary Channel Sidebar -->
         <div class="sub-sidebar">
             <div>
                 <div class="sidebar-header" id="sidebar-title">Direct Messages</div>
@@ -142,7 +120,6 @@
             </div>
         </div>
 
-        <!-- Chat Stream Workspace -->
         <div class="main-chat">
             <div class="chat-header">
                 <span id="active-chat-title"># Select a channel or add a DM friend</span>
@@ -159,66 +136,51 @@
     </div>
 
 <script>
-    const SUPABASE_URL = "jrbxdmgpvnkjlwwihvdl.supabase.com";
+    const SUPABASE_URL = "https://jrbxdmgpvnkjlwwihvdl.supabase.co";
     // ⚠️ PASTE YOUR LONG sb_publishable KEY INSIDE THE QUOTES BELOW
     const SUPABASE_KEY = "sb_publishable_GRYhrmnBUqbUs_4rNbgSew_M8lM-zQV";
 
-    // Initialize the official Supabase client from your local file
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     let userId = null, userEmail = null, currentUsername = "User";
     let activeTab = "dms"; 
     let activeTargetId = null;
 
-    // Loading screen timeline toggle
-    window.onload = () => {
-        setTimeout(() => {
-            const loader = document.getElementById('loading-screen');
-            loader.style.opacity = '0';
-            setTimeout(() => {
-                loader.classList.add('hidden');
-                document.getElementById('auth-section').classList.remove('hidden');
-            }, 300);
-        }, 1000);
-    };
-
     async function handleAuth(type) {
         const email = document.getElementById('email').value;
-async function handleAuth(type) {
-    const email = document.getElementById('email').value;
-    const password = document.getElementById('password').value;
-    const userIn = document.getElementById('username').value.trim();
+        const password = document.getElementById('password').value;
+        const userIn = document.getElementById('username').value.trim();
 
-    if (!email || !password) return alert("Fields cannot be empty.");
-    if (type === 'signup' && !userIn) return alert("Provide a custom Username.");
+        if (!email || !password) return alert("Fields cannot be empty.");
+        if (type === 'signup' && !userIn) return alert("Provide a custom Username.");
 
-    try {
-        if (type === 'signup') {
-            const { data, error } = await supabase.auth.signUp({ email, password });
-            if (error) throw error;
-            
-            // Add username map safely to profile table rows
-            const targetUid = data.user?.id || data.id;
-            await supabase.from('profiles').insert([{ id: targetUid, username: userIn, email: email }]);
-            alert("Account created! Check your real email inbox for a link.");
-        } else {
-            const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-            if (error) throw error;
-            
-            userId = data.user.id;
-            userEmail = data.user.email;
+        try {
+            if (type === 'signup') {
+                const { data, error } = await supabase.auth.signUp({ email, password });
+                if (error) throw error;
+                
+                const targetUid = data.user?.id || data.id;
+                await supabase.from('profiles').insert([{ id: targetUid, username: userIn, email: email }]);
+                alert("Account created! Check your real email inbox for a link.");
+            } else {
+                const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+                if (error) throw error;
+                
+                userId = data.user.id;
+                userEmail = data.user.email;
 
-            const { data: prof, error: pErr } = await supabase.from('profiles').select('*').eq('id', userId);
-            currentUsername = (prof && prof.length > 0) ? prof[0].username : email.split('@')[0];
+                const { data: prof } = await supabase.from('profiles').select('*').eq('id', userId);
+                currentUsername = (prof && prof.length > 0) ? prof[0].username : email.split('@')[0];
 
-            document.getElementById('my-profile-name').innerText = currentUsername;
-            document.getElementById('my-profile-email').innerText = userEmail;
+                document.getElementById('my-profile-name').innerText = currentUsername;
+                document.getElementById('my-profile-email').innerText = userEmail;
 
+                document.getElementById('auth-section').classList.add('hidden');
             document.getElementById('auth-section').classList.add('hidden');
             document.getElementById('chat-section').classList.remove('hidden');
             
             switchMainTab('dms');
-            setInterval(loadMessages, 2500); // Polling script backup loop
+            setInterval(loadMessages, 2500); 
         }
     } catch(e) { alert("Access Denied: " + e.message); }
 }
@@ -243,23 +205,18 @@ async function loadSidebarStructure() {
     if (activeTab === 'dms') {
         document.getElementById('sidebar-title').innerText = "Direct Messages";
         actionArea.innerHTML = `
-            <div class="action-input"> 
-                <input type="text" id="search-dm-username" placeholder="Enter friend's username..."> 
-                <button onclick="startDirectMessage()">Add</button> 
+            <div class="action-input">
+                <input type="text" id="search-dm-username" placeholder="Enter friend's username...">
+                <button onclick="startDirectMessage()">Add</button>
             </div>
         `;
-        
         const { data: rooms } = await supabase.from('dm_rooms').select('*').or(`user_one.eq.${userId},user_two.eq.${userId}`);
         if (rooms) {
             rooms.forEach(r => {
                 const item = document.createElement('div');
                 item.className = 'list-item';
                 item.innerText = `💬 DM Session Room #${r.id}`;
-                item.onclick = () => { 
-                    activeTargetId = r.id; 
-                    document.getElementById('active-chat-title').innerText = `Direct Chat Room #${r.id}`; 
-                    loadMessages(); 
-                };
+                item.onclick = () => { activeTargetId = r.id; document.getElementById('active-chat-title').innerText = `Direct Chat Room #${r.id}`; loadMessages(); };
                 listArea.appendChild(item);
             });
         }
@@ -267,7 +224,6 @@ async function loadSidebarStructure() {
         const { data: servers } = await supabase.from('servers').select('*');
         const iconsBox = document.getElementById('servers-list-icons');
         iconsBox.innerHTML = '';
-        
         if (servers) {
             servers.forEach(s => {
                 const icon = document.createElement('div');
@@ -283,11 +239,8 @@ async function loadSidebarStructure() {
 async function createNewServer() {
     const name = prompt("Enter Server Guild Name:");
     if(!name) return;
-    
     const { data: s } = await supabase.from('servers').insert([{ name, owner_id: userId }]).select();
-    if(s && s.length > 0) {
-        await supabase.from('channels').insert([{ server_id: s[0].id, name: 'general' }]);
-    }
+    if(s && s.length > 0) await supabase.from('channels').insert([{ server_id: s[0].id, name: 'general' }]);
     switchMainTab('servers');
 }
 
@@ -295,12 +248,7 @@ async function loadServerChannels(serverId, serverName) {
     document.getElementById('sidebar-title').innerText = serverName;
     const actionArea = document.getElementById('action-drawer-area');
     const listArea = document.getElementById('sidebar-items-list');
-    
-    actionArea.innerHTML = `
-        <button onclick="addChannelToServer(${serverId})" style="width:100%; padding:6px; background:var(--blurple); color:white; border:none; border-radius:4px; cursor:pointer;">
-            + Add Channel
-        </button>
-    `;
+    actionArea.innerHTML = `<button onclick="addChannelToServer(${serverId})" style="width:100%; padding:6px; background:var(--blurple); color:white; border:none; border-radius:4px; cursor:pointer;">+ Add Channel</button>`;
     listArea.innerHTML = '';
 
     const { data: channels } = await supabase.from('channels').select('*').eq('server_id', serverId);
@@ -309,11 +257,7 @@ async function loadServerChannels(serverId, serverName) {
             const item = document.createElement('div');
             item.className = 'list-item';
             item.innerText = `# ${c.name}`;
-            item.onclick = () => { 
-                activeTargetId = c.id; 
-                document.getElementById('active-chat-title').innerText = `Channel: #${c.name}`; 
-                loadMessages(); 
-            };
+            item.onclick = () => { activeTargetId = c.id; document.getElementById('active-chat-title').innerText = `Channel: #${c.name}`; loadMessages(); };
             listArea.appendChild(item);
         });
     }
@@ -322,7 +266,6 @@ async function loadServerChannels(serverId, serverName) {
 async function addChannelToServer(serverId) {
     const name = prompt("Enter channel name:");
     if(!name) return;
-    
     await supabase.from('channels').insert([{ server_id: serverId, name: name.toLowerCase() }]);
     loadServerChannels(serverId, document.getElementById('sidebar-title').innerText);
 }
@@ -330,10 +273,8 @@ async function addChannelToServer(serverId) {
 async function startDirectMessage() {
     const targetUser = document.getElementById('search-dm-username').value.trim();
     if(!targetUser) return;
-    
     const { data: profile } = await supabase.from('profiles').select('*').eq('username', targetUser);
     if(!profile || profile.length === 0) return alert("User username profile tag not found.");
-
     await supabase.from('dm_rooms').insert([{ user_one: userId, user_two: profile[0].id }]);
     loadSidebarStructure();
 }
@@ -341,12 +282,11 @@ async function startDirectMessage() {
 async function loadMessages() {
     if (!activeTargetId) return;
     const column = activeTab === 'dms' ? 'dm_room_id' : 'channel_id';
-    
     const { data } = await supabase.from('messages').select('*').eq(column, activeTargetId).order('created_at', { ascending: true });
+    
     if (data) {
         const chatBox = document.getElementById('chat-box');
         chatBox.innerHTML = '';
-        
         data.forEach(msg => {
             const tStr = new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
             const div = document.createElement('div');
@@ -367,10 +307,8 @@ async function loadMessages() {
 async function sendMessage() {
     const input = document.getElementById('message-input');
     if (!input.value.trim() || !activeTargetId) return;
-
     const payload = { user_id: userId, username: currentUsername, text: input.value };
     if(activeTab === 'dms') payload.dm_room_id = activeTargetId; else payload.channel_id = activeTargetId;
-
     await supabase.from('messages').insert([payload]);
     input.value = '';
     loadMessages();
