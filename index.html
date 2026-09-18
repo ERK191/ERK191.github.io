@@ -164,10 +164,11 @@
     const SUPABASE_KEY = "sb_publishable_GRYhrmnBUqbUs_4rNbgSew_M8lM-zQV";
 
     let sessionToken = null, userEmail = null, userId = null, currentUsername = "User";
-    let activeTab = "dms"; // "dms" or "servers"
-    let activeTargetId = null; // Contains channel_id or dm_room_id string reference
+let activeTab = "dms"; 
+let activeTargetId = null; 
 
-    const apiCall = async (path, method, body = null, customHeaders = {}) => {
+const apiCall = async (path, method, body = null, customHeaders = {}) => {
+    try {
         const headers = {
             'apikey': SUPABASE_KEY,
             'Authorization': sessionToken ? `Bearer ${sessionToken}` : `Bearer ${SUPABASE_KEY}`,
@@ -177,16 +178,22 @@
         const config = { method, headers };
         if (body) config.body = JSON.stringify(body);
         const res = await fetch(`${SUPABASE_URL}${path}`, config);
-        return res.status === 204 ? null : res.json();
-    };
+        return res.status === 204 ? null : await res.json();
+    } catch(e) {
+        console.error("API Error: ", e);
+    }
+};
 
-    window.onload = () => {
-        setTimeout(() => {
-document.getElementById('loading-screen').style.opacity = '0';
-        setTimeout(() => {
-            document.getElementById('loading-screen').classList.add('hidden');
-            document.getElementById('auth-section').classList.remove('hidden');
-        }, 400);
+window.onload = () => {
+    setTimeout(() => {
+        const loader = document.getElementById('loading-screen');
+        if (loader) {
+            loader.style.opacity = '0';
+            setTimeout(() => {
+                loader.classList.add('hidden');
+                document.getElementById('auth-section').classList.remove('hidden');
+            }, 400);
+        }
     }, 1200);
 };
 
@@ -201,22 +208,20 @@ async function handleAuth(type) {
     try {
         if (type === 'signup') {
             const data = await apiCall('/auth/v1/signup', 'POST', { email, password });
-            if (data.error || data.msg) throw new Error(data.message || data.msg || data.error_description);
+            if (!data || data.error || data.msg) throw new Error(data?.message || data?.msg || data?.error_description || "Signup failed");
             
-            // Track username metadata map object explicitly within public tables schema mapping
             await apiCall('/rest/v1/profiles', 'POST', { id: data.id || data.user?.id, username: userIn, email: email });
             alert("Encrypted Profile provisioned! Confirm link inside your real email address.");
         } else {
             const data = await apiCall('/auth/v1/token?grant_type=password', 'POST', { email, password });
-            if (data.error_description || data.error) throw new Error(data.error_description || data.error);
+            if (!data || data.error_description || data.error) throw new Error(data?.error_description || data?.error || "Login failed");
             
             sessionToken = data.access_token;
             userId = data.user.id;
             userEmail = data.user.email;
 
-            // Load custom profile tag metadata metrics row view mapping values
             const profileObj = await apiCall(`/rest/v1/profiles?id=eq.${userId}&select=*`, 'GET');
-            currentUsername = (profileObj && profileObj[0]) ? profileObj[0].username : email.split('@')[0];
+            currentUsername = (profileObj && profileObj.length > 0) ? profileObj[0].username : email.split('@')[0];
 
             document.getElementById('my-profile-name').innerText = currentUsername;
             document.getElementById('my-profile-email').innerText = userEmail;
@@ -255,7 +260,6 @@ async function loadSidebarStructure() {
                 <button onclick="startDirectMessage()">Add</button>
             </div>
         `;
-        // Pull existing DM Rooms
         const rooms = await apiCall(`/rest/v1/dm_rooms?or=(user_one.eq.${userId},user_two.eq.${userId})&select=*`, 'GET');
         if (rooms && rooms.length > 0) {
             rooms.forEach(r => {
@@ -267,12 +271,11 @@ async function loadSidebarStructure() {
             });
         }
     } else {
-        // Load custom channels list context tracking maps framework
         const servers = await apiCall('/rest/v1/servers?select=*', 'GET');
         const iconsBox = document.getElementById('servers-list-icons');
         iconsBox.innerHTML = '';
         
-        if (servers) {
+        if (servers && servers.length > 0) {
             servers.forEach(s => {
                 const icon = document.createElement('div');
                 icon.className = `server-icon ${activeTargetId === s.id ? 'active' : ''}`;
@@ -288,8 +291,7 @@ async function createNewServer() {
     const name = prompt("Enter Server Guild Name:");
     if(!name) return;
     const s = await apiCall('/rest/v1/servers', 'POST', { name, owner_id: userId }, { 'Prefer': 'return=representation' });
-    // Automatically make a base general channel
-    if(s && s[0]) await apiCall('/rest/v1/channels', 'POST', { server_id: s[0].id, name: 'general' });
+    if(s && s.length > 0) await apiCall('/rest/v1/channels', 'POST', { server_id: s[0].id, name: 'general' });
     switchMainTab('servers');
 }
 
@@ -301,7 +303,7 @@ async function loadServerChannels(serverId, serverName) {
     listArea.innerHTML = '';
 
     const channels = await apiCall(`/rest/v1/channels?server_id=eq.${serverId}&select=*`, 'GET');
-    if (channels) {
+    if (channels && channels.length > 0) {
         channels.forEach(c => {
             const item = document.createElement('div');
             item.className = 'list-item';
@@ -316,7 +318,6 @@ async function addChannelToServer(serverId) {
     const name = prompt("Enter channel name:");
     if(!name) return;
     await apiCall('/rest/v1/channels', 'POST', { server_id: serverId, name: name.toLowerCase() });
-    // Refresh to showcase new channel additions instantly
     const title = document.getElementById('sidebar-title').innerText;
     loadServerChannels(serverId, title);
 }
@@ -341,7 +342,7 @@ async function loadMessages() {
             : `/rest/v1/messages?channel_id=eq.${activeTargetId}&select=*&order=created_at.asc`;
         
         const data = await apiCall(queryPath, 'GET');
-        if (!data || data.error) return;
+        if (!data || data.error || !Array.isArray(data)) return;
         
         const chatBox = document.getElementById('chat-box');
         chatBox.innerHTML = '';
