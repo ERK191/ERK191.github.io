@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CryptoChat | Secure Messaging</title>
-    <!-- Include the official Supabase JS Library -->
-    <script src="https://jsdelivr.net"></script>
+    <!-- Reads the library file locally from your repository -->
+    <script src="supabase.js"></script>
     <style>
         body { 
             background-color: #0b0f19; 
@@ -108,7 +108,7 @@
         <p class="logo-sub">End-to-End Database Layer</p>
     </div>
 
-    <!-- AUTH INTERFACE (Login/Signup) -->
+    <!-- AUTH INTERFACE -->
     <div id="auth-section">
         <input type="email" id="email" placeholder="Email Address">
         <input type="password" id="password" placeholder="Password">
@@ -116,7 +116,7 @@
         <button onclick="handleAuth('signup')" style="background:#374151; color:#fff; margin-top:12px;">Create Encrypted Account</button>
     </div>
 
-    <!-- CHAT INTERFACE (Hidden by default) -->
+    <!-- CHAT INTERFACE -->
     <div id="chat-section" class="hidden">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px;">
             <span style="font-size: 14px; color: #9ca3af;">Status: <span style="color:#00ff88;">● Connected</span></span>
@@ -131,20 +131,18 @@
 </div>
 
 <script>
-    // ⚠️ PLUG YOUR KEY VALUES IN RIGHT HERE
-    const SUPABASE_URL = "https://jrbxdmgpvnkjwwhlhvdl.supabase.co";
+    const SUPABASE_URL = "https://jrbxdmgpvnkjlwwihvdl.supabase.co";";
+    // ⚠️ PASTE YOUR PUBLIC KEY BETWEEN THE QUOTES BELOW
     const SUPABASE_KEY = "sb_publishable_GRYhrmnBUqbUs_4rNbgSew_M8lM-zQV";
     
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     let currentUser = null;
 
-    // Check session on startup
     window.onload = async () => {
         const { data: { session } } = await supabase.auth.getSession();
         if (session) setupChat(session.user);
     };
 
-    // Authentication Management
     async function handleAuth(type) {
         const email = document.getElementById('email').value;
         const password = document.getElementById('password').value;
@@ -156,25 +154,22 @@
             : await supabase.auth.signUp({ email, password });
 
         if (error) return alert(error.message);
-        if (type === 'signup') alert("Account created! Please check your email for a verification link.");
+        if (type === 'signup') alert("Account created! Check your email to confirm registration.");
         if (data.user && type === 'login') setupChat(data.user);
     }
 
-    // Initialize chat window
     function setupChat(user) {
         currentUser = user;
         document.getElementById('auth-section').classList.add('hidden');
         document.getElementById('chat-section').classList.remove('hidden');
         loadMessages();
         
-        // Listen live for incoming stream changes
         supabase.channel('public:messages')
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
                 displayMessage(payload.new);
             }).subscribe();
     }
 
-    // Pull messages securely 
     async function loadMessages() {
         const { data, error } = await supabase.from('messages').select('*').order('created_at', { ascending: true });
         if (error) console.error(error);
@@ -191,7 +186,6 @@
         chatBox.scrollTop = chatBox.scrollHeight;
     }
 
-    // Secure database insert injection protection
     async function sendMessage() {
         const input = document.getElementById('message-input');
         if (!input.value.trim()) return;
