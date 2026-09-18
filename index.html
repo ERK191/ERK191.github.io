@@ -3,79 +3,170 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CryptoChat | Secure Messaging</title>
+    <title>CryptoChat | Enterprise Edition</title>
     <style>
-        body { 
-            background-color: #0b0f19; 
-            color: #f3f4f6; 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            height: 100vh; 
-            margin: 0; 
+        :root {
+            --bg-leftmost: #1e1f22;
+            --bg-sidebar: #2b2d31;
+            --bg-chat: #313338;
+            --text-normal: #dbdee1;
+            --text-muted: #949ba4;
+            --blurple: #5865f2;
+            --green: #23a55a;
         }
-        .container { 
-            background: #111827; 
-            padding: 30px; 
-            border-radius: 12px; 
-            width: 420px; 
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5); 
-            border: 1px solid #1f2937;
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            background-color: var(--bg-leftmost); color: var(--text-normal);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
         }
-        .logo-area { text-align: center; margin-bottom: 25px; }
-        .logo-text { font-size: 28px; font-weight: 800; color: #00ff88; text-shadow: 0 0 15px rgba(0, 255, 136, 0.4); margin: 0; }
-        .logo-sub { font-size: 12px; color: #9ca3af; margin: 4px 0 0 0; text-transform: uppercase; letter-spacing: 2px; }
-        input { width: 94%; padding: 12px; margin: 10px 0; border: 1px solid #374151; background: #1f2937; color: #fff; border-radius: 6px; outline: none; }
-        input:focus { border-color: #00ff88; }
-        button { width: 100%; padding: 12px; background: #00ff88; border: none; color: #0b0f19; font-weight: bold; border-radius: 6px; cursor: pointer; margin-top: 8px; font-size: 14px; }
+
+        #loading-screen {
+            position: fixed; top:0; left:0; width:100vw; height:100vh;
+            background: #1e1f22; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; z-index: 9999;
+            transition: opacity 0.4s ease;
+        }
+        .spinner {
+            width: 44px; height: 44px;
+            border: 4px solid var(--bg-sidebar); border-top: 4px solid var(--blurple);
+            border-radius: 50%; animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .login-wrap { display: flex; justify-content: center; align-items: center; height: 100vh; }
+        .login-box { background: var(--bg-sidebar); padding: 35px; border-radius: 8px; width: 380px; box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
+        .login-box h2 { margin: 0 0 6px 0; text-align: center; color: white;}
+        .login-box p { text-align: center; color: var(--text-muted); font-size: 13px; margin-bottom: 20px;}
+        .input-group { margin-bottom: 14px; }
+        .input-group label { display: block; font-size: 12px; font-weight: bold; margin-bottom: 6px; text-transform: uppercase; color: var(--text-normal); }
+        input { width: 94%; padding: 10px; background: var(--bg-leftmost); border: 1px solid #111; color: #fff; border-radius: 4px; outline: none; }
+        input:focus { border-color: var(--blurple); }
+        button { width: 100%; padding: 12px; background: var(--blurple); color: #fff; font-weight: bold; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #4752c4; }
+
+        .app-container { display: flex; width: 100vw; height: 100vw; height: 100vh; }
+        
+        /* 🎛️ LEFTMOST CORE SERVER BAR */
+        .server-bar { width: 72px; background: var(--bg-leftmost); display: flex; flex-direction: column; align-items: center; padding-top: 12px; gap: 10px; }
+        .server-btn { width: 48px; height: 48px; background: var(--bg-sidebar); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; transition: all 0.2s; }
+        .server-btn:hover, .server-btn.active { border-radius: 16px; background: var(--blurple); color: white; }
+
+        /* 📁 SUB-SIDEBAR (CHANNELS OR DMS LIST) */
+        .sub-sidebar { width: 240px; background: var(--bg-sidebar); display: flex; flex-direction: column; justify-content: space-between; }
+        .sidebar-header { height: 48px; border-bottom: 1px solid rgba(0,0,0,0.2); display: flex; align-items: center; padding: 0 16px; font-weight: bold; color: white; }
+        .list-container { padding: 10px; display: flex; flex-direction: column; gap: 4px; flex-grow: 1; overflow-y: auto; }
+        .list-item { padding: 8px 12px; border-radius: 4px; color: var(--text-muted); cursor: pointer; font-size: 14px; }
+        .list-item:hover, .list-item.active { background: rgba(255,255,255,0.06); color: #fff; }
+        .user-panel { height: 52px; background: #232428; display: flex; align-items: center; justify-content: space-between; padding: 0 10px; }
+        
+        /* 💬 CONVERSATION DISPLAY WRAP */
+        .main-chat { flex-grow: 1; background: var(--bg-chat); display: flex; flex-direction: column; }
+        .chat-header { height: 48px; border-bottom: 1px solid rgba(0,0,0,0.2); display: flex; align-items: center; padding: 0 20px; font-weight: bold; color: white; justify-content: space-between; }
+        .messages-pane { flex-grow: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
+        .msg-card { display: flex; gap: 14px; }
+        .avatar { width: 38px; height: 38px; background: #4e5058; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; }
+        .msg-content { display: flex; flex-direction: column; }
+        .msg-meta { font-size: 13px; font-weight: bold; color: white; }
+        .msg-meta span { font-size: 11px; color: var(--text-muted); font-weight: normal; margin-left: 6px; }
+        .msg-value { font-size: 14px; color: var(--text-normal); margin-top: 3px; }
+        .compose-bar { padding: 20px; }
+        .compose-wrap { background: #383a40; border-radius: 8px; padding: 10px; }
+        .compose-wrap input { width: 98%; border: none; background: transparent; padding: 4px; color: white; margin:0; }
+        
         .hidden { display: none !important; }
-        #chat-box { height: 320px; border: 1px solid #374151; background: #0b0f19; overflow-y: auto; padding: 12px; border-radius: 6px; margin-bottom: 15px; }
-        .msg { margin-bottom: 12px; padding: 8px 12px; border-radius: 6px; background: #1f2937; border-left: 3px solid #00ff88; }
-        .msg-meta { font-size: 11px; color: #00ff88; margin-bottom: 4px; font-weight: 600; }
+        .action-input { margin-bottom: 10px; display: flex; gap: 6px; }
+        .action-input input { flex-grow: 1; }
+        .action-input button { width: auto; padding: 0 12px; font-size: 12px; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div class="logo-area">
-        <h1 class="logo-text">CryptoChat</h1>
-        <p class="logo-sub">Ultra-Fast Database Layer</p>
+    <!-- 🌀 SPINNING LOAD STATE -->
+    <div id="loading-screen">
+        <div class="spinner"></div>
+        <div class="loading-text" style="color:var(--text-muted); font-size:11px; margin-top:10px;">CONNECTING TO CRYPTOCHAT</div>
     </div>
 
-    <!-- AUTH INTERFACE -->
-    <div id="auth-section">
-        <input type="email" id="email" placeholder="Email Address">
-        <input type="password" id="password" placeholder="Password">
-        <button onclick="handleAuth('login')">Secure Log In</button>
-        <button onclick="handleAuth('signup')" style="background:#374151; color:#fff; margin-top:12px;">Create Encrypted Account</button>
+    <!-- 🔐 ACCOUNT FORMS SECTION -->
+    <div id="auth-section" class="login-wrap hidden">
+        <div class="login-box">
+            <h2>Welcome to CryptoChat</h2>
+            <p>Log in or create a separate verified profile identity</p>
+            
+            <div class="input-group">
+                <label>Unique Username</label>
+                <input type="text" id="username" placeholder="e.g. cyberGhost (Signup Only)">
+            </div>
+            <div class="input-group">
+                <label>Email Address</label>
+                <input type="email" id="email" placeholder="name@domain.com">
+            </div>
+            <div class="input-group">
+                <label>Password</label>
+                <input type="password" id="password" placeholder="••••••••">
+            </div>
+            
+            <button onclick="handleAuth('login')">Log In</button>
+            <button onclick="handleAuth('signup')" style="background:#4e5058; margin-top:10px;">Register New Profile</button>
+        </div>
     </div>
 
-    <!-- CHAT INTERFACE -->
-    <div id="chat-section" class="hidden">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px;">
-            <span style="font-size: 14px; color: #9ca3af;">Status: <span style="color:#00ff88;">● Live Stream</span></span>
-            <button onclick="logout()" style="width:auto; padding:6px 12px; background:#ef4444; color:#fff; margin:0; font-size:12px;">Disconnect</button>
+    <!-- 🕹️ DISCORD DESKTOP WORKSPACE LAYOUT -->
+    <div id="chat-section" class="app-container hidden">
+        
+        <!-- Tab navigation column -->
+        <div class="server-bar">
+            <div class="server-btn active" id="btn-dm-view" onclick="switchMainTab('dms')">DMs</div>
+            <div style="width:32px; height:2px; background:#3f4147; margin:4px 0;"></div>
+            <div id="servers-list-icons" style="display:flex; flex-direction:column; gap:8px;"></div>
+            <div class="server-btn" style="background:#23a55a; color:white;" onclick="createNewServer()">+</div>
         </div>
-        <div id="chat-box"></div>
-        <div style="display: flex; gap: 8px;">
-            <input type="text" id="message-input" placeholder="Type an encrypted message..." style="margin:0; flex-grow: 1;">
-            <button onclick="sendMessage()" style="width:80px; margin:0;">Send</button>
+
+        <!-- Secondary list navigation drawer -->
+        <div class="sub-sidebar">
+            <div>
+                <div class="sidebar-header" id="sidebar-title">Direct Messages</div>
+                <div class="list-container">
+                    <div id="action-drawer-area"></div>
+                    <div id="sidebar-items-list"></div>
+                </div>
+            </div>
+            
+            <div class="user-panel">
+                <div style="display:flex; flex-direction:column;">
+                    <span id="my-profile-name" style="font-weight:bold; color:white; font-size:14px;">User</span>
+                    <span id="my-profile-email" style="font-size:11px; color:var(--text-muted);">Email</span>
+                </div>
+                <button onclick="location.reload()" style="width:auto; padding:4px 8px; background:#da373c; font-size:11px; margin:0;">Log Out</button>
+            </div>
+        </div>
+
+        <!-- Chat View Window Frame -->
+        <div class="main-chat">
+            <div class="chat-header">
+                <span id="active-chat-title"># Select a chat channel or DM friend</span>
+            </div>
+            
+            <div class="messages-pane" id="chat-box"></div>
+            
+            <div class="compose-bar id-input-visible">
+                <div class="compose-wrap">
+                    <input type="text" id="message-input" placeholder="Send an encrypted text..." onkeydown="if(event.key==='Enter') sendMessage()">
+                </div>
+            </div>
         </div>
     </div>
-</div>
 
 <script>
-    // Config Core
     const SUPABASE_URL = "https://jrbxdmgpvnkjlwwihvdl.supabase.co";
-    // ⚠️ PASTE YOUR LONG sb_publishable KEY INSIDE THE QUOTES BELOW
+    // ⚠️ PASTE YOUR COPIED PUBLIC KEY KEY STRING DIRECTLY BELOW WITHIN THE QUOTES
     const SUPABASE_KEY = "sb_publishable_GRYhrmnBUqbUs_4rNbgSew_M8lM-zQV";
 
-    let sessionToken = null;
-    let userEmail = null;
-    let userId = null;
+    let sessionToken = null, userEmail = null, userId = null, currentUsername = "User";
+    let activeTab = "dms"; // "dms" or "servers"
+    let activeTargetId = null; // Contains channel_id or dm_room_id string reference
 
-    // Zero-Dependency Light Engine
     const apiCall = async (path, method, body = null, customHeaders = {}) => {
         const headers = {
             'apikey': SUPABASE_KEY,
@@ -89,72 +180,201 @@
         return res.status === 204 ? null : res.json();
     };
 
-    async function handleAuth(type) {
-        const email = document.getElementById('email').value;
-        const password = document.getElementById('password').value;
-        if (!email || !password) return alert("Fields cannot be empty.");
+    window.onload = () => {
+        setTimeout(() => {
+document.getElementById('loading-screen').style.opacity = '0';
+        setTimeout(() => {
+            document.getElementById('loading-screen').classList.add('hidden');
+            document.getElementById('auth-section').classList.remove('hidden');
+        }, 400);
+    }, 1200);
+};
 
-        try {
-            if (type === 'signup') {
-                const data = await apiCall('/auth/v1/signup', 'POST', { email, password });
-                if (data.error || data.msg) throw new Error(data.message || data.msg || data.error_description);
-                alert("Verification link sent! Go check your real email inbox now.");
-            } else {
-                const data = await apiCall('/auth/v1/token?grant_type=password', 'POST', { email, password });
-                if (data.error || data.error_description) throw new Error(data.error_description || data.error);
-                
-                sessionToken = data.access_token;
-                userEmail = data.user.email;
-                userId = data.user.id;
-                
-                setupChat();
-            }
-        } catch (err) {
-            alert("System Alert: " + err.message);
+async function handleAuth(type) {
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    const userIn = document.getElementById('username').value.trim();
+
+    if (!email || !password) return alert("Please fill fields.");
+    if (type === 'signup' && !userIn) return alert("Provide a custom Username identifier.");
+
+    try {
+        if (type === 'signup') {
+            const data = await apiCall('/auth/v1/signup', 'POST', { email, password });
+            if (data.error || data.msg) throw new Error(data.message || data.msg || data.error_description);
+            
+            // Track username metadata map object explicitly within public tables schema mapping
+            await apiCall('/rest/v1/profiles', 'POST', { id: data.id || data.user?.id, username: userIn, email: email });
+            alert("Encrypted Profile provisioned! Confirm link inside your real email address.");
+        } else {
+            const data = await apiCall('/auth/v1/token?grant_type=password', 'POST', { email, password });
+            if (data.error_description || data.error) throw new Error(data.error_description || data.error);
+            
+            sessionToken = data.access_token;
+            userId = data.user.id;
+            userEmail = data.user.email;
+
+            // Load custom profile tag metadata metrics row view mapping values
+            const profileObj = await apiCall(`/rest/v1/profiles?id=eq.${userId}&select=*`, 'GET');
+            currentUsername = (profileObj && profileObj[0]) ? profileObj[0].username : email.split('@')[0];
+
+            document.getElementById('my-profile-name').innerText = currentUsername;
+            document.getElementById('my-profile-email').innerText = userEmail;
+
+            document.getElementById('auth-section').classList.add('hidden');
+            document.getElementById('chat-section').classList.remove('hidden');
+            
+            switchMainTab('dms');
+            setInterval(loadMessages, 2500);
         }
-    }
+    } catch(e) { alert("Core Alert: " + e.message); }
+}
 
-    function setupChat() {
-        document.getElementById('auth-section').classList.add('hidden');
-        document.getElementById('chat-section').classList.remove('hidden');
-        loadMessages();
-        setInterval(loadMessages, 3000); // High-speed fallback polling stream
-    }
+async function switchMainTab(tab) {
+    activeTab = tab;
+    activeTargetId = null;
+    document.getElementById('chat-box').innerHTML = '';
+    document.getElementById('active-chat-title').innerText = "# Select a chat panel interface";
+    
+    const dmBtn = document.getElementById('btn-dm-view');
+    if (tab === 'dms') dmBtn.classList.add('active'); else dmBtn.classList.remove('active');
 
-    async function loadMessages() {
-        try {
-            const data = await apiCall('/rest/v1/messages?select=*&order=created_at.asc', 'GET');
-            if (data.error) return;
-            const chatBox = document.getElementById('chat-box');
-            chatBox.innerHTML = '';
-            data.forEach(msg => {
-                const div = document.createElement('div');
-                div.className = 'msg';
-                div.innerHTML = `<div class="msg-meta">${msg.user_email}</div><div>${escapeHtml(msg.text)}</div>`;
-                chatBox.appendChild(div);
+    loadSidebarStructure();
+}
+
+async function loadSidebarStructure() {
+    const actionArea = document.getElementById('action-drawer-area');
+    const listArea = document.getElementById('sidebar-items-list');
+    actionArea.innerHTML = ''; listArea.innerHTML = '';
+
+    if (activeTab === 'dms') {
+        document.getElementById('sidebar-title').innerText = "Direct Messages";
+        actionArea.innerHTML = `
+            <div class="action-input">
+                <input type="text" id="search-dm-username" placeholder="Enter friend's username...">
+                <button onclick="startDirectMessage()">Add</button>
+            </div>
+        `;
+        // Pull existing DM Rooms
+        const rooms = await apiCall(`/rest/v1/dm_rooms?or=(user_one.eq.${userId},user_two.eq.${userId})&select=*`, 'GET');
+        if (rooms && rooms.length > 0) {
+            rooms.forEach(r => {
+                const item = document.createElement('div');
+                item.className = 'list-item';
+                item.innerText = `💬 DM Session Room ID: ${r.id}`;
+                item.onclick = () => { activeTargetId = r.id; document.getElementById('active-chat-title').innerText = `Direct Chat Room #${r.id}`; loadMessages(); };
+                listArea.appendChild(item);
             });
-            chatBox.scrollTop = chatBox.scrollHeight;
-        } catch (e) {}
-    }
-
-    async function sendMessage() {
-        const input = document.getElementById('message-input');
-        if (!input.value.trim()) return;
-
-        try {
-            await apiCall('/rest/v1/messages', 'POST', 
-                { user_id: userId, user_email: userEmail, text: input.value },
-                { 'Prefer': 'return=minimal' }
-            );
-            input.value = '';
-            loadMessages();
-        } catch (e) {
-            alert("Failed to sync text.");
+        }
+    } else {
+        // Load custom channels list context tracking maps framework
+        const servers = await apiCall('/rest/v1/servers?select=*', 'GET');
+        const iconsBox = document.getElementById('servers-list-icons');
+        iconsBox.innerHTML = '';
+        
+        if (servers) {
+            servers.forEach(s => {
+                const icon = document.createElement('div');
+                icon.className = `server-icon ${activeTargetId === s.id ? 'active' : ''}`;
+                icon.innerText = s.name.substring(0,2).toUpperCase();
+                icon.onclick = () => loadServerChannels(s.id, s.name);
+                iconsBox.appendChild(icon);
+            });
         }
     }
+}
 
-    function logout() { location.reload(); }
-    function escapeHtml(t) { return t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
-</script>
-</body>
-</html>
+async function createNewServer() {
+    const name = prompt("Enter Server Guild Name:");
+    if(!name) return;
+    const s = await apiCall('/rest/v1/servers', 'POST', { name, owner_id: userId }, { 'Prefer': 'return=representation' });
+    // Automatically make a base general channel
+    if(s && s[0]) await apiCall('/rest/v1/channels', 'POST', { server_id: s[0].id, name: 'general' });
+    switchMainTab('servers');
+}
+
+async function loadServerChannels(serverId, serverName) {
+    document.getElementById('sidebar-title').innerText = serverName;
+    const actionArea = document.getElementById('action-drawer-area');
+    const listArea = document.getElementById('sidebar-items-list');
+    actionArea.innerHTML = `<button onclick="addChannelToServer(${serverId})">+ Add Channel</button>`;
+    listArea.innerHTML = '';
+
+    const channels = await apiCall(`/rest/v1/channels?server_id=eq.${serverId}&select=*`, 'GET');
+    if (channels) {
+        channels.forEach(c => {
+            const item = document.createElement('div');
+            item.className = 'list-item';
+            item.innerText = `# ${c.name}`;
+            item.onclick = () => { activeTargetId = c.id; document.getElementById('active-chat-title').innerText = `Guild Server Channel: #${c.name}`; loadMessages(); };
+            listArea.appendChild(item);
+        });
+    }
+}
+
+async function addChannelToServer(serverId) {
+    const name = prompt("Enter channel name:");
+    if(!name) return;
+    await apiCall('/rest/v1/channels', 'POST', { server_id: serverId, name: name.toLowerCase() });
+    // Refresh to showcase new channel additions instantly
+    const title = document.getElementById('sidebar-title').innerText;
+    loadServerChannels(serverId, title);
+}
+
+async function startDirectMessage() {
+    const targetUser = document.getElementById('search-dm-username').value.trim();
+    if(!targetUser) return;
+    
+    const profile = await apiCall(`/rest/v1/profiles?username=eq.${targetUser}&select=*`, 'GET');
+    if(!profile || profile.length === 0) return alert("User matching profile tag name not found.");
+
+    const targetId = profile[0].id;
+    await apiCall('/rest/v1/dm_rooms', 'POST', { user_one: userId, user_two: targetId });
+    loadSidebarStructure();
+}
+
+async function loadMessages() {
+    if (!activeTargetId) return;
+    try {
+        const queryPath = activeTab === 'dms' 
+            ? `/rest/v1/messages?dm_room_id=eq.${activeTargetId}&select=*&order=created_at.asc`
+            : `/rest/v1/messages?channel_id=eq.${activeTargetId}&select=*&order=created_at.asc`;
+        
+        const data = await apiCall(queryPath, 'GET');
+        if (!data || data.error) return;
+        
+        const chatBox = document.getElementById('chat-box');
+        chatBox.innerHTML = '';
+        
+        data.forEach(msg => {
+            const tStr = new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            const div = document.createElement('div');
+            div.className = 'msg-card';
+            div.innerHTML = `
+                <div class="avatar">${msg.username.charAt(0).toUpperCase()}</div>
+                <div class="msg-content">
+                    <div class="msg-meta">${msg.username} <span>Today at ${tStr}</span></div>
+                    <div class="msg-value">${escapeHtml(msg.text)}</div>
+                </div>
+            `;
+            chatBox.appendChild(div);
+        });
+        chatBox.scrollTop = chatBox.scrollHeight;
+    } catch(e){}
+}
+
+async function sendMessage() {
+    const input = document.getElementById('message-input');
+    if (!input.value.trim() || !activeTargetId) return;
+
+    const payload = { user_id: userId, username: currentUsername, text: input.value };
+    if(activeTab === 'dms') payload.dm_room_id = activeTargetId; else payload.channel_id = activeTargetId;
+
+    await apiCall('/rest/v1/messages', 'POST', payload, { 'Prefer': 'return=minimal' });
+    input.value = '';
+    loadMessages();
+}
+
+function escapeHtml(t) { 
+    return t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); 
+}
