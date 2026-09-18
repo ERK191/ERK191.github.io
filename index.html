@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CryptoChat | Secure Messaging</title>
-    <!-- Reads the library file locally from your repository -->
-    <script src="supabase.js"></script>
     <style>
         body { 
             background-color: #0b0f19; 
@@ -25,79 +23,16 @@
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5); 
             border: 1px solid #1f2937;
         }
-        .logo-area {
-            text-align: center;
-            margin-bottom: 25px;
-        }
-        .logo-text {
-            font-size: 28px;
-            font-weight: 800;
-            letter-spacing: 1px;
-            color: #00ff88;
-            text-shadow: 0 0 15px rgba(0, 255, 136, 0.4);
-            margin: 0;
-        }
-        .logo-sub {
-            font-size: 12px;
-            color: #9ca3af;
-            margin: 4px 0 0 0;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-        }
-        input { 
-            width: 94%; 
-            padding: 12px; 
-            margin: 10px 0; 
-            border: 1px solid #374151; 
-            background: #1f2937; 
-            color: #fff; 
-            border-radius: 6px; 
-            outline: none;
-            transition: border 0.2s;
-        }
-        input:focus {
-            border-color: #00ff88;
-        }
-        button { 
-            width: 100%; 
-            padding: 12px; 
-            background: #00ff88; 
-            border: none; 
-            color: #0b0f19; 
-            font-weight: bold; 
-            border-radius: 6px; 
-            cursor: pointer; 
-            margin-top: 8px; 
-            font-size: 14px;
-            transition: all 0.2s;
-        }
-        button:hover {
-            background: #00e677;
-            box-shadow: 0 0 12px rgba(0, 255, 136, 0.3);
-        }
+        .logo-area { text-align: center; margin-bottom: 25px; }
+        .logo-text { font-size: 28px; font-weight: 800; color: #00ff88; text-shadow: 0 0 15px rgba(0, 255, 136, 0.4); margin: 0; }
+        .logo-sub { font-size: 12px; color: #9ca3af; margin: 4px 0 0 0; text-transform: uppercase; letter-spacing: 2px; }
+        input { width: 94%; padding: 12px; margin: 10px 0; border: 1px solid #374151; background: #1f2937; color: #fff; border-radius: 6px; outline: none; }
+        input:focus { border-color: #00ff88; }
+        button { width: 100%; padding: 12px; background: #00ff88; border: none; color: #0b0f19; font-weight: bold; border-radius: 6px; cursor: pointer; margin-top: 8px; font-size: 14px; }
         .hidden { display: none !important; }
-        #chat-box { 
-            height: 320px; 
-            border: 1px solid #374151; 
-            background: #0b0f19; 
-            overflow-y: auto; 
-            padding: 12px; 
-            border-radius: 6px; 
-            margin-bottom: 15px; 
-        }
-        .msg { 
-            margin-bottom: 12px; 
-            padding: 8px 12px; 
-            border-radius: 6px; 
-            background: #1f2937; 
-            border-left: 3px solid #00ff88;
-        }
-        .msg-meta { 
-            font-size: 11px; 
-            color: #00ff88; 
-            margin-bottom: 4px; 
-            font-weight: 600;
-        }
+        #chat-box { height: 320px; border: 1px solid #374151; background: #0b0f19; overflow-y: auto; padding: 12px; border-radius: 6px; margin-bottom: 15px; }
+        .msg { margin-bottom: 12px; padding: 8px 12px; border-radius: 6px; background: #1f2937; border-left: 3px solid #00ff88; }
+        .msg-meta { font-size: 11px; color: #00ff88; margin-bottom: 4px; font-weight: 600; }
     </style>
 </head>
 <body>
@@ -105,7 +40,7 @@
 <div class="container">
     <div class="logo-area">
         <h1 class="logo-text">CryptoChat</h1>
-        <p class="logo-sub">End-to-End Database Layer</p>
+        <p class="logo-sub">Ultra-Fast Database Layer</p>
     </div>
 
     <!-- AUTH INTERFACE -->
@@ -119,7 +54,7 @@
     <!-- CHAT INTERFACE -->
     <div id="chat-section" class="hidden">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px;">
-            <span style="font-size: 14px; color: #9ca3af;">Status: <span style="color:#00ff88;">● Connected</span></span>
+            <span style="font-size: 14px; color: #9ca3af;">Status: <span style="color:#00ff88;">● Live Stream</span></span>
             <button onclick="logout()" style="width:auto; padding:6px 12px; background:#ef4444; color:#fff; margin:0; font-size:12px;">Disconnect</button>
         </div>
         <div id="chat-box"></div>
@@ -131,81 +66,95 @@
 </div>
 
 <script>
-    const SUPABASE_URL = "https://jrbxdmgpvnkjlwwihvdl.supabase.co";";
-    // ⚠️ PASTE YOUR PUBLIC KEY BETWEEN THE QUOTES BELOW
+    // Config Core
+    const SUPABASE_URL = "https://jrbxdmgpvnkjlwwihvdl.supabase.co";
+    // ⚠️ PASTE YOUR LONG sb_publishable KEY INSIDE THE QUOTES BELOW
     const SUPABASE_KEY = "sb_publishable_GRYhrmnBUqbUs_4rNbgSew_M8lM-zQV";
-    
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    let currentUser = null;
 
-    window.onload = async () => {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) setupChat(session.user);
+    let sessionToken = null;
+    let userEmail = null;
+    let userId = null;
+
+    // Zero-Dependency Light Engine
+    const apiCall = async (path, method, body = null, customHeaders = {}) => {
+        const headers = {
+            'apikey': SUPABASE_KEY,
+            'Authorization': sessionToken ? `Bearer ${sessionToken}` : `Bearer ${SUPABASE_KEY}`,
+            'Content-Type': 'application/json',
+            ...customHeaders
+        };
+        const config = { method, headers };
+        if (body) config.body = JSON.stringify(body);
+        const res = await fetch(`${SUPABASE_URL}${path}`, config);
+        return res.status === 204 ? null : res.json();
     };
 
     async function handleAuth(type) {
         const email = document.getElementById('email').value;
         const password = document.getElementById('password').value;
-        
-        if(!email || !password) return alert("Please fill in all fields.");
+        if (!email || !password) return alert("Fields cannot be empty.");
 
-        const { data, error } = type === 'login' 
-            ? await supabase.auth.signInWithPassword({ email, password })
-            : await supabase.auth.signUp({ email, password });
-
-        if (error) return alert(error.message);
-        if (type === 'signup') alert("Account created! Check your email to confirm registration.");
-        if (data.user && type === 'login') setupChat(data.user);
+        try {
+            if (type === 'signup') {
+                const data = await apiCall('/auth/v1/signup', 'POST', { email, password });
+                if (data.error || data.msg) throw new Error(data.message || data.msg || data.error_description);
+                alert("Verification link sent! Go check your real email inbox now.");
+            } else {
+                const data = await apiCall('/auth/v1/token?grant_type=password', 'POST', { email, password });
+                if (data.error || data.error_description) throw new Error(data.error_description || data.error);
+                
+                sessionToken = data.access_token;
+                userEmail = data.user.email;
+                userId = data.user.id;
+                
+                setupChat();
+            }
+        } catch (err) {
+            alert("System Alert: " + err.message);
+        }
     }
 
-    function setupChat(user) {
-        currentUser = user;
+    function setupChat() {
         document.getElementById('auth-section').classList.add('hidden');
         document.getElementById('chat-section').classList.remove('hidden');
         loadMessages();
-        
-        supabase.channel('public:messages')
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
-                displayMessage(payload.new);
-            }).subscribe();
+        setInterval(loadMessages, 3000); // High-speed fallback polling stream
     }
 
     async function loadMessages() {
-        const { data, error } = await supabase.from('messages').select('*').order('created_at', { ascending: true });
-        if (error) console.error(error);
-        document.getElementById('chat-box').innerHTML = '';
-        if (data) data.forEach(displayMessage);
-    }
-
-    function displayMessage(msg) {
-        const chatBox = document.getElementById('chat-box');
-        const div = document.createElement('div');
-        div.className = 'msg';
-        div.innerHTML = `<div class="msg-meta">${msg.user_email}</div><div>${escapeHtml(msg.text)}</div>`;
-        chatBox.appendChild(div);
-        chatBox.scrollTop = chatBox.scrollHeight;
+        try {
+            const data = await apiCall('/rest/v1/messages?select=*&order=created_at.asc', 'GET');
+            if (data.error) return;
+            const chatBox = document.getElementById('chat-box');
+            chatBox.innerHTML = '';
+            data.forEach(msg => {
+                const div = document.createElement('div');
+                div.className = 'msg';
+                div.innerHTML = `<div class="msg-meta">${msg.user_email}</div><div>${escapeHtml(msg.text)}</div>`;
+                chatBox.appendChild(div);
+            });
+            chatBox.scrollTop = chatBox.scrollHeight;
+        } catch (e) {}
     }
 
     async function sendMessage() {
         const input = document.getElementById('message-input');
         if (!input.value.trim()) return;
 
-        const { error } = await supabase.from('messages').insert([
-            { user_id: currentUser.id, user_email: currentUser.email, text: input.value }
-        ]);
-
-        if (error) alert("Security Block: " + error.message);
-        input.value = '';
+        try {
+            await apiCall('/rest/v1/messages', 'POST', 
+                { user_id: userId, user_email: userEmail, text: input.value },
+                { 'Prefer': 'return=minimal' }
+            );
+            input.value = '';
+            loadMessages();
+        } catch (e) {
+            alert("Failed to sync text.");
+        }
     }
 
-    async function logout() {
-        await supabase.auth.signOut();
-        location.reload();
-    }
-
-    function escapeHtml(text) {
-        return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-    }
+    function logout() { location.reload(); }
+    function escapeHtml(t) { return t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
 </script>
 </body>
 </html>
